@@ -1,0 +1,15 @@
+/* src/App.css */
+.app-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  font-family: 'Noto Sans TC', 'Microsoft JhengHei', Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+/* 確保在不同螢幕尺寸下的響應式調整 */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+} 
