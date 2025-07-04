@@ -14,6 +14,8 @@ function VideoOverlay({ video, index, setVideos }) {
   const playbackStateRef = useRef('forward'); // 'forward' | 'reverse' | 'paused'
   // 用於 UI 顯示的狀態，不影響播放邏輯
   const [displayState, setDisplayState] = useState('▶️');
+  // 新增：當前播放的影片來源狀態
+  const [currentVideoSrc, setCurrentVideoSrc] = useState(video.file);
 
   // 處理影片播放控制（播放模式、速度、停頓等）
   useEffect(() => {
@@ -22,7 +24,11 @@ function VideoOverlay({ video, index, setVideos }) {
 
     // 清除之前的動畫和狀態
     if (animationIdRef.current) {
-      cancelAnimationFrame(animationIdRef.current);
+      if (typeof animationIdRef.current === 'number' && animationIdRef.current > 0) {
+        clearInterval(animationIdRef.current); // 清理 interval
+      } else {
+        cancelAnimationFrame(animationIdRef.current); // 清理 animation frame
+      }
       animationIdRef.current = null;
     }
 
@@ -36,79 +42,76 @@ function VideoOverlay({ video, index, setVideos }) {
     videoElement.pause(); // 先暫停避免衝突
 
     if (video.mode === 'ping-pong') {
-      // 來回播放模式：手動控制時間軸
+      // 來回播放模式：切換正向和倒播影片
+      setCurrentVideoSrc(video.originalUrl || video.file); // 從正向影片開始
       videoElement.playbackRate = video.speed;
-      videoElement.loop = false; // 確保不會自動循環
+      videoElement.loop = false;
       
       const handleEnded = () => {
-        // 影片正向播放結束，開始反向播放
         if (playbackStateRef.current === 'forward') {
-          playbackStateRef.current = 'reverse';
-          isReversingRef.current = true;
-          setDisplayState('⏪'); // 更新顯示狀態
+          // 正向播放結束，切換到倒播影片
+          if (video.reverseFilePath && window.electronAPI) {
+            playbackStateRef.current = 'reverse';
+            setDisplayState('⏪');
+            
+            const switchToReverse = () => {
+              // 切換到倒播影片 (使用新的 protocol URL)
+              const reverseVideoUrl = video.reverseUrl || `file://${video.reverseFilePath}`;
+              console.log('切換到倒播影片 URL:', reverseVideoUrl);
+              setCurrentVideoSrc(reverseVideoUrl);
+              
+              // 等待影片載入後播放
+              const handleLoadedData = () => {
+                videoElement.currentTime = 0;
+                videoElement.play().catch(console.warn);
+                videoElement.removeEventListener('loadeddata', handleLoadedData);
+              };
+              
+              videoElement.addEventListener('loadeddata', handleLoadedData);
+            };
+            
+            if (video.pause > 0) {
+              setDisplayState('⏸️');
+              setTimeout(switchToReverse, video.pause * 1000);
+            } else {
+              switchToReverse();
+            }
+          } else {
+            // 倒播影片還沒準備好，回到開頭重新播放
+            console.warn('倒播影片還沒準備好，回到正向播放');
+            videoElement.currentTime = 0;
+            videoElement.play().catch(console.warn);
+          }
+        } else if (playbackStateRef.current === 'reverse') {
+          // 倒播結束，切換回正向影片
+          playbackStateRef.current = 'forward';
+          setDisplayState('▶️');
           
-          // 處理停頓：如果停頓秒數為0則立即執行
-          const startReverse = () => {
-            // 確保從影片結尾開始反向播放
-            videoElement.currentTime = videoElement.duration;
-            startReversePlay();
+          const switchToForward = () => {
+            // 切換回正向影片 (使用新的 protocol URL)
+            const forwardVideoUrl = video.originalUrl || video.file;
+            console.log('切換回正向影片 URL:', forwardVideoUrl);
+            setCurrentVideoSrc(forwardVideoUrl);
+            
+            // 等待影片載入後播放
+            const handleLoadedData = () => {
+              videoElement.currentTime = 0;
+              videoElement.play().catch(console.warn);
+              videoElement.removeEventListener('loadeddata', handleLoadedData);
+            };
+            
+            videoElement.addEventListener('loadeddata', handleLoadedData);
           };
           
           if (video.pause > 0) {
-            setDisplayState('⏸️'); // 顯示暫停狀態
-            setTimeout(startReverse, video.pause * 1000);
+            setDisplayState('⏸️');
+            setTimeout(switchToForward, video.pause * 1000);
           } else {
-            startReverse(); // 立即開始反向播放
+            switchToForward();
           }
         }
       };
 
-      const startReversePlay = () => {
-        setDisplayState('⏪');
-        
-        // 使用更簡單的定時器方法而不是 requestAnimationFrame
-        const reverseInterval = setInterval(() => {
-          if (!isReversingRef.current || playbackStateRef.current !== 'reverse' || video.mode !== 'ping-pong') {
-            clearInterval(reverseInterval);
-            return;
-          }
-          
-          // 根據播放速度調整時間步長 - 改為更小的步長確保精確控制
-          const timeStep = 0.05 * video.speed; // 每次減少0.05秒，比較平滑
-          
-          // 檢查是否已經到達開頭
-          if (videoElement.currentTime <= 0.05) {
-            // 反向播放結束，重新開始正向播放
-            clearInterval(reverseInterval);
-            videoElement.currentTime = 0; // 確保重置到真正的開頭
-            isReversingRef.current = false;
-            playbackStateRef.current = 'forward';
-            
-            // 處理停頓：如果停頓秒數為0則立即執行
-            const startForward = () => {
-              if (video.mode === 'ping-pong') { // 確保還在來回播放模式
-                setDisplayState('▶️');
-                videoElement.play().catch(console.warn);
-              }
-            };
-            
-            if (video.pause > 0) {
-              setDisplayState('⏸️'); // 顯示暫停狀態
-              setTimeout(startForward, video.pause * 1000);
-            } else {
-              startForward(); // 立即開始正向播放
-            }
-          } else {
-            // 繼續反向播放
-            videoElement.currentTime = Math.max(0, videoElement.currentTime - timeStep);
-          }
-        }, 50); // 改為每50ms執行一次，讓反向播放更平滑且速度合理
-        
-        // 存儲 interval ID 以便清理
-        animationIdRef.current = reverseInterval;
-      };
-
-      // 使用 ended 事件觸發反向播放
       videoElement.addEventListener('ended', handleEnded);
       
       // 開始正向播放
@@ -116,25 +119,27 @@ function VideoOverlay({ video, index, setVideos }) {
       setDisplayState('▶️');
       setTimeout(() => {
         videoElement.play().catch(console.warn);
-      }, 100); // 短暫延遲確保設置完成
+      }, 100);
 
       return () => {
         videoElement.removeEventListener('ended', handleEnded);
         if (animationIdRef.current) {
           if (typeof animationIdRef.current === 'number' && animationIdRef.current > 0) {
-            clearInterval(animationIdRef.current); // 清理 interval
+            clearInterval(animationIdRef.current);
           } else {
-            cancelAnimationFrame(animationIdRef.current); // 清理 animation frame
+            cancelAnimationFrame(animationIdRef.current);
           }
           animationIdRef.current = null;
         }
         isReversingRef.current = false;
         playbackStateRef.current = 'forward';
         setDisplayState('▶️');
+        setCurrentVideoSrc(video.originalUrl || video.file); // 重置為正向影片
       };
       
     } else if (video.mode === 'loop') {
       // 循環播放模式：手動控制循環以支援停頓功能
+      setCurrentVideoSrc(video.originalUrl || video.file); // 確保使用正向影片
       videoElement.playbackRate = video.speed;
       videoElement.loop = false; // 關閉自動循環，改用手動控制
       setDisplayState('🔄'); // 設置循環播放指示器
@@ -161,16 +166,18 @@ function VideoOverlay({ video, index, setVideos }) {
       return () => {
         videoElement.removeEventListener('ended', handleEnded);
         setDisplayState('▶️');
+        setCurrentVideoSrc(video.originalUrl || video.file); // 重置為正向影片
       };
     } else {
       // 預設播放模式
+      setCurrentVideoSrc(video.originalUrl || video.file); // 確保使用正向影片
       videoElement.playbackRate = video.speed;
       setDisplayState('▶️');
       setTimeout(() => {
         videoElement.play().catch(console.warn);
       }, 100);
     }
-  }, [video.mode, video.speed, video.pause]); // 當模式或參數改變時立即重新初始化
+  }, [video.mode, video.speed, video.pause, video.reverseFilePath]); // 加入 reverseFilePath 依賴
 
   // 開始拖曳
   const handleMouseDown = (e) => {
@@ -261,7 +268,7 @@ function VideoOverlay({ video, index, setVideos }) {
     >
       <video
         ref={videoRef}
-        src={video.file}
+        src={currentVideoSrc} // 使用動態影片來源
         style={{
           width: '100%',
           height: '100%',

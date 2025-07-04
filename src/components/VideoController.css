@@ -138,6 +138,56 @@
   margin-bottom: 0;
 }
 
+/* 轉換進度指示器樣式 */
+.conversion-status {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.conversion-progress {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+}
+
+.conversion-complete {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.conversion-error {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.progress-label {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
 .remove-btn {
   background: none;
   border: none;

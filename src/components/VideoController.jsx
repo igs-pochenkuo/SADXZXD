@@ -1,19 +1,101 @@
 // src/components/VideoController.jsx
 // 影片控制面板組件，負責影片選擇、模式切換、數值調整
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './VideoController.css';
 
 function VideoController({ videos, setVideos, background, setBackground }) {
   
+  // 新增：轉換進度狀態
+  const [conversionProgress, setConversionProgress] = useState({});
+  const [tempFiles, setTempFiles] = useState([]); // 追蹤臨時檔案
+
+  // 監聽轉換事件
+  useEffect(() => {
+    // 除錯：檢查 Electron API 是否可用
+    console.log('檢查 Electron API:', {
+      electronAPI: !!window.electronAPI,
+      methods: window.electronAPI ? Object.keys(window.electronAPI) : 'N/A'
+    });
+    
+    if (!window.electronAPI) {
+      console.warn('Electron API 不可用，ffmpeg 功能將無法使用');
+      return;
+    }
+
+    console.log('設置 ffmpeg 轉換事件監聽器...');
+
+    // 轉換開始
+    window.electronAPI.onConversionStart((data) => {
+      console.log('轉換開始:', data);
+      setConversionProgress(prev => ({
+        ...prev,
+        [data.inputPath]: { status: 'converting', percent: 0 }
+      }));
+    });
+
+    // 轉換進度
+    window.electronAPI.onConversionProgress((data) => {
+      setConversionProgress(prev => ({
+        ...prev,
+        [data.inputPath]: { status: 'converting', percent: data.percent }
+      }));
+    });
+
+    // 轉換完成
+    window.electronAPI.onConversionComplete((data) => {
+      setConversionProgress(prev => ({
+        ...prev,
+        [data.inputPath]: { status: 'completed', percent: 100 }
+      }));
+      
+      // 更新影片物件，加入倒播檔案路徑
+      setVideos(prevVideos => 
+        prevVideos.map(video => 
+          video.originalFilePath === data.inputPath 
+            ? { ...video, reverseFilePath: data.outputPath }
+            : video
+        )
+      );
+    });
+
+    // 轉換錯誤
+    window.electronAPI.onConversionError((data) => {
+      setConversionProgress(prev => ({
+        ...prev,
+        [data.inputPath]: { status: 'error', error: data.error }
+      }));
+    });
+
+    // 清理函數
+    return () => {
+      if (window.electronAPI?.removeAllListeners) {
+        window.electronAPI.removeAllListeners('conversion-start');
+        window.electronAPI.removeAllListeners('conversion-progress');
+        window.electronAPI.removeAllListeners('conversion-complete');
+        window.electronAPI.removeAllListeners('conversion-error');
+      }
+    };
+  }, [setVideos]);
+
+  // 組件卸載時清理臨時檔案
+  useEffect(() => {
+    return () => {
+      if (tempFiles.length > 0 && window.electronAPI?.cleanupTempFiles) {
+        window.electronAPI.cleanupTempFiles(tempFiles);
+      }
+    };
+  }, [tempFiles]);
+
   // 處理影片上傳
-  const handleVideoUpload = (e) => {
+  const handleVideoUpload = async (e) => {
     const files = Array.from(e.target.files).slice(0, 3); // 最多3個檔案
     
-    files.forEach((file, index) => {
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
       const videoElement = document.createElement('video');
       const fileURL = URL.createObjectURL(file);
       
-      videoElement.onloadedmetadata = () => {
+      videoElement.onloadedmetadata = async () => {
         const videoWidth = videoElement.videoWidth;
         const videoHeight = videoElement.videoHeight;
         const aspectRatio = videoWidth / videoHeight;
@@ -35,10 +117,68 @@ function VideoController({ videos, setVideos, background, setBackground }) {
         displayWidth = Math.max(displayWidth, 120);
         displayHeight = Math.max(displayHeight, 120);
         
+        // 生成倒播影片檔案路徑（如果在 Electron 環境中）
+        let originalFilePath = null;
+        let reverseFilePath = null;
+        let originalUrl = null;
+        let reverseUrl = null;
+        
+        if (window.electronAPI) {
+          try {
+            console.log('開始處理影片檔案:', file.name);
+            
+            // 將檔案轉換為 ArrayBuffer
+            const arrayBuffer = await file.arrayBuffer();
+            console.log('檔案轉換為 ArrayBuffer 完成，大小:', arrayBuffer.byteLength);
+            
+            // 透過 IPC 複製檔案到臨時目錄
+            console.log('透過 IPC 複製檔案到臨時目錄...');
+            const result = await window.electronAPI.copyFileToTemp(
+              arrayBuffer, 
+              file.name, 
+              index
+            );
+            console.log('檔案複製結果:', result);
+            
+            if (result.success) {
+              originalFilePath = result.originalPath;
+              reverseFilePath = result.reversePath;
+              originalUrl = result.originalUrl;
+              reverseUrl = result.reverseUrl;
+              console.log('檔案路徑:', { originalFilePath, reverseFilePath });
+              console.log('Protocol URLs:', { originalUrl, reverseUrl });
+              
+              // 添加到臨時檔案清單
+              setTempFiles(prev => [...prev, originalFilePath, reverseFilePath]);
+              
+              // 開始生成倒播影片
+              console.log('開始生成倒播影片:', originalFilePath, '->', reverseFilePath);
+              window.electronAPI.generateReverseVideo(originalFilePath, reverseFilePath)
+                .then(result => {
+                  console.log('倒播影片生成結果:', result);
+                })
+                .catch(error => {
+                  console.error('生成倒播影片失敗:', error);
+                });
+            } else {
+              console.error('複製檔案失敗:', result.error);
+            }
+          } catch (error) {
+            console.error('設置 ffmpeg 轉換失敗:', error);
+          }
+        } else {
+          console.log('非 Electron 環境，跳過 ffmpeg 處理');
+        }
+        
         const videoObj = {
           id: Date.now() + index, // 唯一識別碼
           file: fileURL, // 產生可用的檔案 URL
           fileName: file.name, // 保存檔案名稱
+          originalFilePath, // 原始檔案路徑（用於 ffmpeg）
+          reverseFilePath, // 倒播檔案路徑（轉換完成後設置）
+          // 修正：使用局部變數避免作用域問題
+          originalUrl, 
+          reverseUrl,
           x: 50 + index * 50, // 預設 X 座標（錯開顯示）
           y: 50 + index * 50, // 預設 Y 座標（錯開顯示）
           width: displayWidth, // 根據比例計算的寬度
@@ -57,7 +197,7 @@ function VideoController({ videos, setVideos, background, setBackground }) {
       };
       
       videoElement.src = fileURL;
-    });
+    }
   };
 
   // 處理背景圖上傳
@@ -182,6 +322,35 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                 <div>原始尺寸: {video.originalWidth}x{video.originalHeight}</div>
                 <div>顯示尺寸: {video.width}x{video.height}</div>
                 <div>比例: {video.aspectRatio > 1 ? '橫版' : '直版'} ({video.aspectRatio.toFixed(2)})</div>
+                
+                {/* 新增：轉換進度指示器 */}
+                {video.originalFilePath && conversionProgress[video.originalFilePath] && (
+                  <div className="conversion-status">
+                    {conversionProgress[video.originalFilePath].status === 'converting' && (
+                      <div className="conversion-progress">
+                        <div className="progress-label">
+                          🔄 生成倒播影片中... {Math.round(conversionProgress[video.originalFilePath].percent || 0)}%
+                        </div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill" 
+                            style={{ width: `${conversionProgress[video.originalFilePath].percent || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    {conversionProgress[video.originalFilePath].status === 'completed' && (
+                      <div className="conversion-complete">
+                        ✅ 倒播影片已準備就緒，來回播放功能可用
+                      </div>
+                    )}
+                    {conversionProgress[video.originalFilePath].status === 'error' && (
+                      <div className="conversion-error">
+                        ❌ 倒播影片生成失敗: {conversionProgress[video.originalFilePath].error}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* 位置控制 */}
