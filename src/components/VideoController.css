@@ -64,6 +64,38 @@
   font-style: italic;
 }
 
+/* 背景控制區域樣式 */
+.background-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.default-bg-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.default-bg-btn:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.default-bg-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .video-control-item {
   margin-bottom: 16px;
   padding: 12px;

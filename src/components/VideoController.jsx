@@ -68,6 +68,11 @@ function VideoController({ videos, setVideos, background, setBackground }) {
     }
   };
 
+  // 使用預設背景圖
+  const useDefaultBackground = () => {
+    setBackground('./default-bg.png'); // 使用 public 目錄下的預設背景
+  };
+
   // 更新單一影片參數
   const updateVideoParam = (index, key, value) => {
     setVideos(prevVideos => 
@@ -139,12 +144,21 @@ function VideoController({ videos, setVideos, background, setBackground }) {
       {/* 背景圖設定 */}
       <div className="control-section">
         <label>🖼️ 背景圖：</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleBackgroundUpload}
-          className="file-input"
-        />
+        <div className="background-controls">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleBackgroundUpload}
+            className="file-input"
+          />
+          <button 
+            onClick={useDefaultBackground}
+            className="default-bg-btn"
+            title="使用預設背景圖片"
+          >
+            使用預設
+          </button>
+        </div>
       </div>
 
       {/* 影片參數調整 */}
