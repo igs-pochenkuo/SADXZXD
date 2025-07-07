@@ -37,7 +37,13 @@
     },
     "files": [
       "build/**/*",
-      "main.js"
+      "main.js",
+      "preload.js",
+      "node_modules/@ffmpeg-installer/**/*",
+      "node_modules/fluent-ffmpeg/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/@ffmpeg-installer/**/*"
     ],
     "extraMetadata": {
       "main": "main.js"

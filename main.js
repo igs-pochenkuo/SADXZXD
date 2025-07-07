@@ -8,11 +8,30 @@ const os = require('os');
 
 // ffmpeg 相關依賴
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+
+// 動態設定 ffmpeg 路徑
+let ffmpegPath;
+if (app.isPackaged) {
+  // 打包後的路徑：在 app.asar.unpacked 目錄中
+  const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+  ffmpegPath = ffmpegInstaller.path.replace('app.asar', 'app.asar.unpacked');
+  console.log('打包模式 - ffmpeg 路徑:', ffmpegPath);
+} else {
+  // 開發模式路徑
+  ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+  console.log('開發模式 - ffmpeg 路徑:', ffmpegPath);
+}
 
 // 設定 ffmpeg 執行檔路徑
 ffmpeg.setFfmpegPath(ffmpegPath);
 console.log('ffmpeg 路徑設定為:', ffmpegPath);
+
+// 驗證 ffmpeg 是否存在
+const ffmpegExists = fs.existsSync(ffmpegPath);
+console.log('ffmpeg 檔案是否存在:', ffmpegExists);
+if (!ffmpegExists) {
+  console.error('⚠️ ffmpeg 可執行檔不存在:', ffmpegPath);
+}
 
 // 建立靜態檔案伺服器
 let tempDirPath = null;
