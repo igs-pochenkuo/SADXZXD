@@ -322,7 +322,8 @@ function VideoOverlay({ video, index, setVideos }) {
                 cursor: isDragging ? 'grabbing' : 'grab',
                 border: '2px solid rgba(0, 122, 204, 0.5)',
                 borderRadius: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                overflow: 'visible' // 允許子元素超出容器範圍顯示
             }}
             onMouseDown={handleMouseDown}
         >
@@ -390,8 +391,8 @@ function VideoOverlay({ video, index, setVideos }) {
                         src={video.logo}
                         alt="LOGO"
                         style={{
-                            maxWidth: `${120 * video.scale}px`, // 根據影片縮放比例調整大小
-                            maxHeight: `${120 * video.scale}px`,
+                            maxWidth: `${100 * video.scale}px`, // 根據影片縮放比例調整大小
+                            maxHeight: `${100 * video.scale}px`,
                             objectFit: 'contain',
                             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                             borderRadius: '2px',
@@ -400,6 +401,30 @@ function VideoOverlay({ video, index, setVideos }) {
                         }}
                         onError={(e) => {
                             e.target.src = './default-logo.png'; // 載入失敗時使用預設 LOGO
+                        }}
+                    />
+                </div>
+            )}
+            
+            {/* NEW 旗子顯示 */}
+            {video.gameUI && video.gameUI.showNew && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: `${-25 * video.scale}px`,
+                        left: `${-18 * video.scale}px`,
+                        zIndex: 15,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <img
+                        src="./img_new.png"
+                        alt="NEW"
+                        style={{
+                            maxWidth: `${60 * video.scale}px`,
+                            maxHeight: `${60 * video.scale}px`,
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                         }}
                     />
                 </div>
@@ -421,6 +446,31 @@ function VideoOverlay({ video, index, setVideos }) {
             >
                 影片 {index + 1} ({video.speed}x) {displayState}
             </div>
+
+            {/* 愛心顯示 */}
+            {video.gameUI && video.gameUI.showFavorite && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: `-13px`,
+                        right: `-3px`,
+                        zIndex: 15,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <img
+                        src="./img_favorite.png"
+                        alt="Favorite"
+                        style={{
+                            maxWidth: `${30 * video.scale}px`,
+                            maxHeight: `${30 * video.scale}px`,
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                            opacity: video.gameUI.isFavorite ? 1 : 0.6 // 根據收藏狀態調整透明度
+                        }}
+                    />
+                </div>
+            )}
 
             {/* 拖曳指示 */}
             {isDragging && (

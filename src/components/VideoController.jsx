@@ -206,7 +206,12 @@ function VideoController({ videos, setVideos, background, setBackground }) {
           visible: true, // 是否顯示
           scale: 1, // 縮放比例
           logo: './default-logo.png', // LOGO 圖片路徑，預設使用 default-logo.png
-          logoScale: 1 // LOGO 縮放比例，預設為 1
+          logoScale: 1, // LOGO 縮放比例，預設為 1
+          gameUI: {
+            showNew: true,        // 是否顯示NEW旗子
+            showFavorite: true,   // 是否顯示愛心
+            isFavorite: false     // 愛心狀態（false: 空心, true: 實心）
+          }
         };
         
         setVideos(prevVideos => [...prevVideos, videoObj]);
@@ -241,6 +246,17 @@ function VideoController({ videos, setVideos, background, setBackground }) {
   // 使用預設 LOGO
   const useDefaultLogo = (index) => {
     updateVideoParam(index, 'logo', './default-logo.png');
+  };
+
+  // 更新遊戲UI參數
+  const updateGameUIParam = (index, key, value) => {
+    setVideos(prevVideos => 
+      prevVideos.map((video, idx) => 
+        idx === index 
+          ? { ...video, gameUI: { ...video.gameUI, [key]: value } }
+          : video
+      )
+    );
   };
 
   // 更新單一影片參數
@@ -512,6 +528,41 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                 </div>
               </div>
 
+              {/* 遊戲UI控制 */}
+              <div className="param-group">
+                <label>遊戲UI元素：</label>
+                <div className="game-ui-controls">
+                  <div className="game-ui-row">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={video.gameUI.showNew}
+                        onChange={(e) => updateGameUIParam(index, 'showNew', e.target.checked)}
+                      />
+                      顯示NEW旗子
+                    </label>
+                  </div>
+                  <div className="game-ui-row">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={video.gameUI.showFavorite}
+                        onChange={(e) => updateGameUIParam(index, 'showFavorite', e.target.checked)}
+                      />
+                      顯示愛心
+                    </label>
+                    {video.gameUI.showFavorite && (
+                      <button
+                        onClick={() => updateGameUIParam(index, 'isFavorite', !video.gameUI.isFavorite)}
+                        className={`favorite-toggle-btn ${video.gameUI.isFavorite ? 'active' : ''}`}
+                      >
+                        {video.gameUI.isFavorite ? '❤️' : '🤍'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* 顯示/隱藏 */}
               <div className="param-group">
                 <label>
@@ -540,6 +591,8 @@ function VideoController({ videos, setVideos, background, setBackground }) {
           <li>每個影片可以上傳自定義 LOGO 圖片</li>
           <li>LOGO 會顯示在影片右上角，並隨縮放調整</li>
           <li>可以單獨調整 LOGO 的縮放比例（0.5x - 3x）</li>
+          <li>可以顯示遊戲UI元素：NEW旗子（左上角）、愛心（右下角）</li>
+          <li>愛心可以切換收藏狀態，影響透明度顯示</li>
         </ul>
       </div>
     </div>

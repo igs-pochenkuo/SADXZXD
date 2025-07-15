@@ -394,3 +394,44 @@ input[type="checkbox"] {
   margin-bottom: 4px;
   color: #495057;
 }
+
+/* 遊戲UI控制樣式 */
+.game-ui-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.game-ui-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.game-ui-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #495057;
+}
+
+.favorite-toggle-btn {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.favorite-toggle-btn:hover {
+  background: #f8f9fa;
+}
+
+.favorite-toggle-btn.active {
+  background: #ffe6e6;
+  border-color: #ff6b6b;
+}
