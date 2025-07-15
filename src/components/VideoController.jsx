@@ -48,14 +48,28 @@ function VideoController({ videos, setVideos, background, setBackground }) {
         [data.inputPath]: { status: 'completed', percent: 100 }
       }));
       
-      // 更新影片物件，加入倒播檔案路徑
-      setVideos(prevVideos => 
-        prevVideos.map(video => 
-          video.originalFilePath === data.inputPath 
-            ? { ...video, reverseFilePath: data.outputPath }
-            : video
-        )
-      );
+      // 更新影片物件，加入倒播檔案路徑和 URL
+              setVideos(prevVideos => 
+          prevVideos.map(video => {
+            if (video.originalFilePath === data.inputPath) {
+              // 從輸出路徑提取檔案名稱（使用 JavaScript 字串方法）
+              const fileName = data.outputPath.split(/[\\\/]/).pop();
+              const reverseUrl = `temp-file://${fileName}`;
+              
+              console.log('更新影片物件:', {
+                reverseFilePath: data.outputPath,
+                reverseUrl: reverseUrl
+              });
+              
+              return { 
+                ...video, 
+                reverseFilePath: data.outputPath,
+                reverseUrl: reverseUrl
+              };
+            }
+            return video;
+          })
+        );
     });
 
     // 轉換錯誤
@@ -144,9 +158,9 @@ function VideoController({ videos, setVideos, background, setBackground }) {
               originalFilePath = result.originalPath;
               reverseFilePath = result.reversePath;
               originalUrl = result.originalUrl;
-              reverseUrl = result.reverseUrl;
+              reverseUrl = null; // 先設為 null，等倒播影片生成完成後再設定
               console.log('檔案路徑:', { originalFilePath, reverseFilePath });
-              console.log('Protocol URLs:', { originalUrl, reverseUrl });
+              console.log('Protocol URLs:', { originalUrl, reverseUrl: '待生成' });
               
               // 添加到臨時檔案清單
               setTempFiles(prev => [...prev, originalFilePath, reverseFilePath]);
@@ -381,7 +395,7 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                   type="range"
                   min="0.2"
                   max="3"
-                  step="0.1"
+                  step="0.05"
                   value={video.scale}
                   onChange={(e) => updateVideoParam(index, 'scale', parseFloat(e.target.value))}
                   className="range-input"
@@ -428,7 +442,7 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                   type="range"
                   min="0.5"
                   max="3"
-                  step="0.1"
+                  step="0.05"
                   value={video.speed}
                   onChange={(e) => updateVideoParam(index, 'speed', parseFloat(e.target.value))}
                   className="range-input"
