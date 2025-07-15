@@ -204,7 +204,9 @@ function VideoController({ videos, setVideos, background, setBackground }) {
           pause: 0, // 停頓秒數 (0-10)
           speed: 1, // 播放速度 (0.5-3.0)
           visible: true, // 是否顯示
-          scale: 1 // 縮放比例
+          scale: 1, // 縮放比例
+          logo: './default-logo.png', // LOGO 圖片路徑，預設使用 default-logo.png
+          logoScale: 1 // LOGO 縮放比例，預設為 1
         };
         
         setVideos(prevVideos => [...prevVideos, videoObj]);
@@ -225,6 +227,20 @@ function VideoController({ videos, setVideos, background, setBackground }) {
   // 使用預設背景圖
   const useDefaultBackground = () => {
     setBackground('./default-bg.png'); // 使用 public 目錄下的預設背景
+  };
+
+  // 處理 LOGO 上傳
+  const handleLogoUpload = (index, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const logoURL = URL.createObjectURL(file);
+      updateVideoParam(index, 'logo', logoURL);
+    }
+  };
+
+  // 使用預設 LOGO
+  const useDefaultLogo = (index) => {
+    updateVideoParam(index, 'logo', './default-logo.png');
   };
 
   // 更新單一影片參數
@@ -449,6 +465,53 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                 />
               </div>
 
+              {/* LOGO 圖片 */}
+              <div className="param-group">
+                <label>LOGO 圖片：</label>
+                <div className="logo-controls">
+                  <div className="logo-preview">
+                    <img 
+                      src={video.logo} 
+                      alt="LOGO 預覽" 
+                      className="logo-preview-image"
+                      onError={(e) => {
+                        e.target.src = './default-logo.png'; // 載入失敗時使用預設 LOGO
+                      }}
+                    />
+                  </div>
+                  <div className="logo-buttons">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoUpload(index, e)}
+                      className="logo-upload-input"
+                      id={`logo-upload-${index}`}
+                    />
+                    <label htmlFor={`logo-upload-${index}`} className="logo-upload-btn">
+                      上傳 LOGO
+                    </label>
+                    <button 
+                      onClick={() => useDefaultLogo(index)}
+                      className="default-logo-btn"
+                    >
+                      使用預設
+                    </button>
+                  </div>
+                  <div className="logo-scale-control">
+                    <label>LOGO 縮放：{video.logoScale}x</label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="3"
+                      step="0.1"
+                      value={video.logoScale}
+                      onChange={(e) => updateVideoParam(index, 'logoScale', parseFloat(e.target.value))}
+                      className="range-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* 顯示/隱藏 */}
               <div className="param-group">
                 <label>
@@ -474,6 +537,9 @@ function VideoController({ videos, setVideos, background, setBackground }) {
           <li>可調整縮放比例改變顯示尺寸</li>
           <li>可直接拖曳影片調整位置</li>
           <li>調整播放模式、速度等參數</li>
+          <li>每個影片可以上傳自定義 LOGO 圖片</li>
+          <li>LOGO 會顯示在影片右上角，並隨縮放調整</li>
+          <li>可以單獨調整 LOGO 的縮放比例（0.5x - 3x）</li>
         </ul>
       </div>
     </div>

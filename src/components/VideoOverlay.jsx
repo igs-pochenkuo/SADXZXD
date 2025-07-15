@@ -374,6 +374,37 @@ function VideoOverlay({ video, index, setVideos }) {
                 />
             )}
             
+            {/* LOGO 顯示 */}
+            {video.logo && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: `${15 * video.scale}px`,
+                        left: '50%', // 左邊緣距離容器左邊 50%
+                        transform: 'translateX(-50%)', // 向左移動自身寬度的 50%
+                        zIndex: 10,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <img
+                        src={video.logo}
+                        alt="LOGO"
+                        style={{
+                            maxWidth: `${120 * video.scale}px`, // 根據影片縮放比例調整大小
+                            maxHeight: `${120 * video.scale}px`,
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                            borderRadius: '2px',
+                            opacity: 0.9, // 稍微透明，避免過於突出
+                            transform: `scale(${video.logoScale})` // 應用 LOGO 縮放
+                        }}
+                        onError={(e) => {
+                            e.target.src = './default-logo.png'; // 載入失敗時使用預設 LOGO
+                        }}
+                    />
+                </div>
+            )}
+            
             {/* 影片資訊顯示 */}
             <div
                 style={{

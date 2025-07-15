@@ -314,4 +314,83 @@ input[type="checkbox"] {
 
 .video-controller::-webkit-scrollbar-thumb:hover {
   background: #999;
-} 
+}
+
+/* LOGO 控制樣式 */
+.logo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.logo-preview {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  min-height: 60px;
+  align-items: center;
+}
+
+.logo-preview-image {
+  max-width: 100%;
+  max-height: 50px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.logo-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.logo-upload-input {
+  display: none;
+}
+
+.logo-upload-btn {
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.logo-upload-btn:hover {
+  background: #0056b3;
+}
+
+.default-logo-btn {
+  padding: 6px 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.default-logo-btn:hover {
+  background: #545b62;
+}
+
+.logo-scale-control {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+}
+
+.logo-scale-control label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #495057;
+}
