@@ -81,6 +81,7 @@ function VideoOverlay({ video, index, setVideos }) {
                         // 倒播影片還沒準備好，回到開頭重新播放
                         console.warn('倒播影片還沒準備好，回到正向播放');
                         videoElement.currentTime = 0;
+                        videoElement.playbackRate = video.speed; // 重新設置播放速度
                         videoElement.play().catch(console.warn);
                     }
                 } else if (playbackStateRef.current === 'reverse') {
