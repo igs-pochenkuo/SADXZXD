@@ -35,7 +35,7 @@ function PreviewArea({ videos, background, setVideos }) {
           width: '100%',
           height: 'calc(100vh - 60px)', // 扣除標題列高度
           background: background && background !== 'default-bg.png' 
-            ? `url(${background}) center/cover no-repeat`
+            ? `url(${background}) center/contain no-repeat`
             : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // 預設漸層背景
           overflow: 'hidden',
           display: 'flex',
