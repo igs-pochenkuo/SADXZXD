@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匯出設定預覽</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+
+        .form-section h3 {
+            margin: 0 0 15px 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .form-row:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .required-label::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+        }
+
+        .readonly-field {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #007acc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #005c99;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .json-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .field-description {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            font-style: italic;
+        }
+
+        .section-required {
+            border-left: 4px solid #dc3545;
+        }
+
+        .section-optional {
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 匯出設定預覽與編輯</h1>
+
+        <!-- 必要參數 -->
+        <div class="form-section section-required">
+            <h3>必要參數 <small style="color: #dc3545;">(必填)</small></h3>
+            
+            <div class="form-row">
+                <label for="platform" class="required-label">平台</label>
+                <select id="platform">
+                    <option value="I_RICH">I_RICH</option>
+                    <option value="BEST_777">BEST_777</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="game_id" class="required-label">遊戲ID字串</label>
+                <input type="text" id="game_id" placeholder="請輸入遊戲ID字串">
+                <div class="field-description">用於識別遊戲的唯一ID，請到 InannaLua 的 Define.lua 中的 ModuleIds 找到遊戲ID字串</div>
+            </div>
+
+            <div class="form-row">
+                <label for="ANIMATION" class="required-label">plist輸出資料夾名稱</label>
+                <input type="text" id="ANIMATION" placeholder="請輸入plist輸出資料夾名稱">
+                <div class="field-description">plist輸出資料夾名稱，請輸入資料夾名稱，不要輸入資料夾路徑</div>
+            </div>
+
+            <div class="form-row">
+                <label for="LOOP" class="required-label">播放模式</label>
+                <select id="LOOP" >
+                    <option value="normal">normal (循環播放)</option>
+                    <option value="pingpong">pingpong (來回播放)</option>
+                </select>
+                <div class="field-description">從影片設定自動取得</div>
+            </div>
+
+            <div class="form-row">
+                <label for="GAME_NAME" class="required-label">LOGO 圖片名稱</label>
+                <input type="text" id="GAME_NAME" placeholder="請輸入LOGO圖片名稱 (不含副檔名)">
+                <div class="field-description">LOGO圖片在專案中的名稱，請到InannaResource尋找LOGO名稱</div>
+            </div>
+
+            <div class="form-row">
+                <label for="IS_CLIPPING" class="required-label">是否裁切</label>
+                <select id="IS_CLIPPING" disabled>
+                    <option value="true">true (啟用裁切)</option>
+                    <option value="false">false (關閉裁切)</option>
+                </select>
+                <div class="field-description">通常保持為 true，除非有特殊需求，無法修改</div>
+            </div>
+        </div>
+
+        <!-- 選填參數 -->
+        <div class="form-section section-optional">
+            <h3>選填參數 <small style="color: #28a745;">(可選)</small></h3>
+            
+            <div class="form-row">
+                <label for="PLAY_INTERVAL">停留秒數</label>
+                <input type="number" id="PLAY_INTERVAL" min="0" max="60" step="0.1">
+                <div class="field-description">每次播放結束後的停留時間 (秒)，從影片設定自動取得</div>
+            </div>
+        </div>
+
+        <!-- JSON 預覽 -->
+        <div class="form-section">
+            <h3>JSON 預覽 <small>(最終將匯出的資料)</small></h3>
+            <div id="jsonPreview" class="json-preview"></div>
+        </div>
+
+        <!-- 按鈕 -->
+        <div class="buttons">
+            <button type="button" class="btn-secondary" onclick="cancelExport()">取消</button>
+            <button type="button" class="btn-primary" onclick="confirmExport()">確認匯出</button>
+        </div>
+    </div>
+
+    <script>
+        let exportData = null;
+
+        // 初始化對話框
+        function initDialog(data) {
+            console.log('🔥 [DEBUG] initDialog 函數開始執行');
+            console.log('🔥 [DEBUG] 初始化匯出對話框，收到資料:', data);
+            console.log('🔥 [DEBUG] 收到資料的類型:', typeof data);
+            
+            exportData = data;
+            console.log('🔥 [DEBUG] exportData 設定完成:', exportData);
+
+            // 設定必要參數
+            if (data.required) {
+                console.log('🔥 [DEBUG] 設定必要參數...');
+                console.log('🔥 [DEBUG] data.required:', data.required);
+                
+                document.getElementById('platform').value = data.required.platform || 'I_RICH';
+                document.getElementById('game_id').value = data.required.game_id || '';
+                document.getElementById('ANIMATION').value = data.required.ANIMATION || '';
+                document.getElementById('LOOP').value = data.required.LOOP || 'normal';
+                document.getElementById('GAME_NAME').value = data.required.GAME_NAME || '';
+                document.getElementById('IS_CLIPPING').value = data.required.IS_CLIPPING ? 'true' : 'false';
+                
+                console.log('🔥 [DEBUG] 必要參數設定完成');
+            } else {
+                console.log('🔥 [DEBUG] 沒有 required 資料');
+            }
+
+            // 設定選填參數
+            if (data.optional) {
+                console.log('🔥 [DEBUG] 設定選填參數...');
+                console.log('🔥 [DEBUG] data.optional:', data.optional);
+                
+                document.getElementById('PLAY_INTERVAL').value = data.optional.PLAY_INTERVAL || 0;
+                
+                console.log('🔥 [DEBUG] 選填參數設定完成');
+            } else {
+                console.log('🔥 [DEBUG] 沒有 optional 資料');
+            }
+
+            // 更新 JSON 預覽
+            console.log('🔥 [DEBUG] 準備更新 JSON 預覽...');
+            updateJsonPreview();
+            console.log('🔥 [DEBUG] JSON 預覽更新完成');
+
+            // 綁定事件監聽器
+            console.log('🔥 [DEBUG] 綁定事件監聽器...');
+            const inputs = document.querySelectorAll('input, select');
+            console.log('🔥 [DEBUG] 找到 input/select 元素數量:', inputs.length);
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', updateJsonPreview);
+                input.addEventListener('change', updateJsonPreview);
+            });
+            
+            console.log('🔥 [DEBUG] initDialog 函數執行完成');
+        }
+
+        // 更新 JSON 預覽
+        function updateJsonPreview() {
+            // 收集必要參數
+            const required = {
+                platform: document.getElementById('platform').value,
+                game_id: document.getElementById('game_id').value,
+                ANIMATION: document.getElementById('ANIMATION').value,
+                LOOP: document.getElementById('LOOP').value,
+                GAME_NAME: document.getElementById('GAME_NAME').value,
+                IS_CLIPPING: document.getElementById('IS_CLIPPING').value === 'true'
+            };
+
+            // 收集選填參數
+            const optional = {};
+            const playInterval = document.getElementById('PLAY_INTERVAL').value;
+            if (playInterval !== '' && playInterval !== '0') {
+                optional.PLAY_INTERVAL = parseFloat(playInterval);
+            }
+
+            var finalData = {
+                platform: required.platform,
+                game_id: required.game_id,
+                settings: {
+                    ANIMATION: required.ANIMATION,
+                    LOOP: required.LOOP,
+                    GAME_NAME: required.GAME_NAME,
+                    IS_CLIPPING: required.IS_CLIPPING
+                }
+            };
+
+            if (optional.PLAY_INTERVAL) {
+                finalData.settings.PLAY_INTERVAL = optional.PLAY_INTERVAL;
+            }
+
+            document.getElementById('jsonPreview').textContent = JSON.stringify(finalData, null, 2);
+
+            // 更新全域資料
+            exportData = finalData;
+        }
+
+        // 確認匯出
+        function confirmExport() {
+            console.log('🔥 [DEBUG] confirmExport 函數開始執行');
+            console.log('🔥 [DEBUG] exportData 內容:', exportData);
+            console.log('🔥 [DEBUG] exportData 類型:', typeof exportData);
+            
+            // 檢查 exportData 是否存在
+            if (!exportData) {
+                console.error('🔥 [ERROR] exportData 為 null 或 undefined');
+                alert('匯出資料不存在，請重新嘗試');
+                return;
+            }
+            
+            console.log('🔥 [DEBUG] exportData.required:', exportData.required);
+            
+            // 檢查必要欄位
+            const settings = exportData.settings;
+            const missingFields = [];
+            
+            
+            if (!exportData.game_id || !exportData.game_id.trim()) {
+                console.log('🔥 [DEBUG] game_id 欄位缺失或為空');
+                missingFields.push('遊戲 ID');
+            }
+            if (!settings.ANIMATION || !settings.ANIMATION.trim()) {
+                console.log('🔥 [DEBUG] ANIMATION 欄位缺失或為空');
+                missingFields.push('動畫檔案名稱');
+            }
+            if (!settings.GAME_NAME || !settings.GAME_NAME.trim()) {
+                console.log('🔥 [DEBUG] GAME_NAME 欄位缺失或為空');
+                missingFields.push('LOGO 圖片名稱');
+            }
+            
+            console.log('🔥 [DEBUG] 缺失欄位:', missingFields);
+            
+            if (missingFields.length > 0) {
+                console.log('🔥 [DEBUG] 有缺失欄位，顯示警告並返回');
+                alert(`請填寫必要欄位：${missingFields.join('、')}`);
+                return;
+            }
+            
+            console.log('🔥 [DEBUG] 必要欄位檢查通過');
+            console.log('🔥 [DEBUG] 檢查 window.electronAPI...');
+            console.log('🔥 [DEBUG] window.electronAPI:', window.electronAPI);
+            console.log('🔥 [DEBUG] window.electronAPI 存在:', !!window.electronAPI);
+            
+            if (window.electronAPI) {
+                console.log('🔥 [DEBUG] window.electronAPI.sendExportResult:', window.electronAPI.sendExportResult);
+                console.log('🔥 [DEBUG] sendExportResult 存在:', !!window.electronAPI.sendExportResult);
+            }
+            
+            if (window.electronAPI && window.electronAPI.sendExportResult) {
+                console.log('🔥 [DEBUG] 準備調用 sendExportResult...');
+                const resultData = {
+                    success: true,
+                    canceled: false,
+                    data: exportData
+                };
+                console.log('🔥 [DEBUG] 發送的結果資料:', resultData);
+                
+                try {
+                    window.electronAPI.sendExportResult(resultData);
+                    console.log('🔥 [DEBUG] sendExportResult 調用成功');
+                } catch (error) {
+                    console.error('🔥 [ERROR] sendExportResult 調用失敗:', error);
+                    alert('匯出時發生錯誤: ' + error.message);
+                }
+            } else {
+                console.error('🔥 [ERROR] Electron API 不可用');
+                console.error('🔥 [ERROR] window 物件存在:', !!window);
+                console.error('🔥 [ERROR] electronAPI 物件存在:', !!window.electronAPI);
+                if (window.electronAPI) {
+                    console.error('🔥 [ERROR] electronAPI 的所有方法:', Object.keys(window.electronAPI));
+                }
+                alert('Electron API 不可用，請檢查應用程式狀態');
+            }
+        }
+
+        // 取消匯出
+        function cancelExport() {
+            console.log('🔥 [DEBUG] cancelExport 函數開始執行');
+            
+            console.log('🔥 [DEBUG] 檢查 window.electronAPI...');
+            console.log('🔥 [DEBUG] window.electronAPI 存在:', !!window.electronAPI);
+            
+            if (window.electronAPI && window.electronAPI.sendExportResult) {
+                console.log('🔥 [DEBUG] 準備調用 sendExportResult (取消)...');
+                try {
+                    window.electronAPI.sendExportResult({
+                        success: true,
+                        canceled: true
+                    });
+                    console.log('🔥 [DEBUG] sendExportResult (取消) 調用成功');
+                } catch (error) {
+                    console.error('🔥 [ERROR] sendExportResult (取消) 調用失敗:', error);
+                }
+            } else {
+                console.error('🔥 [ERROR] Electron API 不可用 (取消匯出)');
+            }
+        }
+
+        // 頁面載入時的調試信息
+        console.log('🔥 [DEBUG] export-dialog.html 頁面載入完成');
+        console.log('🔥 [DEBUG] window 物件存在:', !!window);
+        console.log('🔥 [DEBUG] window.electronAPI 存在:', !!window.electronAPI);
+        
+        if (window.electronAPI) {
+            console.log('🔥 [DEBUG] electronAPI 所有可用方法:', Object.keys(window.electronAPI));
+            console.log('🔥 [DEBUG] onInitExportData 方法存在:', !!window.electronAPI.onInitExportData);
+            console.log('🔥 [DEBUG] sendExportResult 方法存在:', !!window.electronAPI.sendExportResult);
+        }
+
+        // 監聽來自主進程的資料
+        if (window.electronAPI && window.electronAPI.onInitExportData) {
+            console.log('🔥 [DEBUG] 設定 onInitExportData 監聽器');
+            window.electronAPI.onInitExportData(initDialog);
+            console.log('🔥 [DEBUG] onInitExportData 監聽器設定完成');
+        } else {
+            console.error('🔥 [ERROR] 無法設定 onInitExportData 監聽器');
+            console.error('🔥 [ERROR] electronAPI 存在:', !!window.electronAPI);
+            if (window.electronAPI) {
+                console.error('🔥 [ERROR] onInitExportData 存在:', !!window.electronAPI.onInitExportData);
+            }
+        }
+    </script>
+</body>
+</html>

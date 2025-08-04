@@ -5,6 +5,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { exec } = require('child_process');
 
 // ffmpeg 相關依賴
 const ffmpeg = require('fluent-ffmpeg');
@@ -256,4 +257,151 @@ ipcMain.handle('test-ffmpeg', async (event) => {
       }
     });
   });
+});
+
+// ==================== 匯出功能相關 IPC 處理程序 ====================
+
+// 設定檔案路徑
+const settingsFilePath = path.join(os.homedir(), '.banner-preview-tool-settings.json');
+
+// 載入匯出設定
+ipcMain.handle('load-export-settings', async () => {
+  console.log('收到 load-export-settings IPC 請求');
+  try {
+    if (fs.existsSync(settingsFilePath)) {
+      const data = fs.readFileSync(settingsFilePath, 'utf8');
+      const settings = JSON.parse(data);
+      console.log('載入設定成功:', settings);
+      return settings;
+    } else {
+      console.log('設定檔案不存在，返回預設設定');
+      return { lobbyDefinePath: '' };
+    }
+  } catch (error) {
+    console.error('載入設定失敗:', error);
+    return { lobbyDefinePath: '' };
+  }
+});
+
+// 保存匯出設定
+ipcMain.handle('save-export-settings', async (event, settings) => {
+  console.log('收到 save-export-settings IPC 請求:', settings);
+  try {
+    fs.writeFileSync(settingsFilePath, JSON.stringify(settings, null, 2), 'utf8');
+    console.log('保存設定成功');
+    return { success: true };
+  } catch (error) {
+    console.error('保存設定失敗:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 開啟匯出預覽對話框
+ipcMain.handle('open-export-dialog', async (event, data) => {
+  console.log('收到 open-export-dialog IPC 請求');
+  
+  return new Promise((resolve) => {
+    // 創建模態對話框視窗
+    const exportWindow = new BrowserWindow({
+      width: 600,
+      height: 700,
+      modal: true,
+      parent: BrowserWindow.fromWebContents(event.sender),
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'export-preload.js')
+      },
+      title: '匯出設定預覽',
+      resizable: false,
+      show: false
+    });
+
+    // 載入匯出對話框 HTML
+    exportWindow.loadFile(path.join(__dirname, 'export-dialog.html'));
+
+    exportWindow.once('ready-to-show', () => {
+      exportWindow.show();
+      
+      // 傳送資料到對話框
+      exportWindow.webContents.send('init-export-data', data);
+    });
+
+    // 監聽對話框回傳的結果
+    ipcMain.once('export-dialog-result', (resultEvent, result) => {
+      exportWindow.close();
+      resolve(result);
+    });
+
+    // 處理視窗關閉事件（用戶直接關閉視窗）
+    exportWindow.on('closed', () => {
+      // 移除事件監聽器，避免記憶體洩漏
+      ipcMain.removeAllListeners('export-dialog-result');
+      resolve({ success: true, canceled: true });
+    });
+  });
+});
+
+// 執行匯出流程
+ipcMain.handle('execute-export', async (event, { targetPath, exportData }) => {
+  console.log('收到 execute-export IPC 請求');
+  console.log('目標路徑:', targetPath);
+  console.log('匯出資料:', exportData);
+
+  try {
+    // 創建臨時 JSON 檔案
+    const tempDir = path.join(os.tmpdir(), 'banner-preview-export');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const tempJsonPath = path.join(tempDir, `export_${Date.now()}.json`);
+    fs.writeFileSync(tempJsonPath, JSON.stringify(exportData, null, 2), 'utf8');
+    console.log('臨時 JSON 檔案已創建:', tempJsonPath);
+
+    // 執行 Python 腳本
+    const scriptPath = './merge_script.exe'//path.join(__dirname, 'merge_script.exe'); // 假設腳本在同一目錄
+    const command = `"${scriptPath}" --target "${targetPath}" --input "${tempJsonPath}"`;
+    
+    console.log('執行命令:', command);
+
+    return new Promise((resolve) => {
+      exec(command, (error, stdout, stderr) => {
+        // 清理臨時檔案
+        try {
+          if (fs.existsSync(tempJsonPath)) {
+            fs.unlinkSync(tempJsonPath);
+            console.log('臨時檔案已清理:', tempJsonPath);
+          }
+        } catch (cleanupError) {
+          console.warn('清理臨時檔案失敗:', cleanupError);
+        }
+
+        if (error) {
+          console.error('Python 腳本執行失敗:', error);
+          console.error('stderr:', stderr);
+          resolve({
+            success: false,
+            error: `腳本執行失敗: ${error.message}`,
+            details: stderr
+          });
+        } else {
+          console.log('Python 腳本執行成功');
+          console.log('stdout:', stdout);
+          resolve({
+            success: true,
+            message: '匯出完成',
+            output: stdout
+          });
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error('匯出流程發生錯誤:', error);
+    return {
+      success: false,
+      error: `匯出失敗: ${error.message}`
+    };
+  }
 }); 

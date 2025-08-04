@@ -27,6 +27,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 測試 ffmpeg 功能
   testFFmpeg: () => ipcRenderer.invoke('test-ffmpeg'),
   
+  // 匯出功能相關 API
+  // 載入匯出設定
+  loadExportSettings: () => ipcRenderer.invoke('load-export-settings'),
+  
+  // 保存匯出設定
+  saveExportSettings: (settings) => ipcRenderer.invoke('save-export-settings', settings),
+  
+  // 開啟匯出預覽對話框
+  openExportDialog: (data) => ipcRenderer.invoke('open-export-dialog', data),
+  
+  // 執行匯出流程
+  executeExport: (data) => ipcRenderer.invoke('execute-export', data),
+  
   // 監聽轉換事件
   onConversionStart: (callback) => {
     ipcRenderer.on('conversion-start', (event, data) => callback(data));

@@ -9,6 +9,11 @@ function VideoController({ videos, setVideos, background, setBackground }) {
   const [conversionProgress, setConversionProgress] = useState({});
   const [tempFiles, setTempFiles] = useState([]); // 追蹤臨時檔案
   const [ffmpegTestResult, setFFmpegTestResult] = useState(null); // ffmpeg 測試結果
+  
+  // 匯出功能相關狀態
+  const [lobbyDefinePath, setLobbyDefinePath] = useState(''); // LobbyDefine.lua 路徑
+  const [exportStatus, setExportStatus] = useState(null); // 匯出狀態
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0); // 選中要匯出的影片索引
 
   // 監聽轉換事件
   useEffect(() => {
@@ -339,6 +344,159 @@ function VideoController({ videos, setVideos, background, setBackground }) {
     setVideos(prevVideos => prevVideos.filter((_, idx) => idx !== index));
   };
 
+  // 匯出功能相關函數
+  
+  // 載入已保存的 LobbyDefine.lua 路徑
+  useEffect(() => {
+    const loadSavedPath = async () => {
+      if (window.electronAPI && window.electronAPI.loadExportSettings) {
+        try {
+          const savedSettings = await window.electronAPI.loadExportSettings();
+          if (savedSettings && savedSettings.lobbyDefinePath) {
+            setLobbyDefinePath(savedSettings.lobbyDefinePath);
+          }
+        } catch (error) {
+          console.error('載入設定失敗:', error);
+        }
+      }
+    };
+    loadSavedPath();
+  }, []);
+
+  // 當影片數量變化時，確保選中的索引在有效範圍內
+  useEffect(() => {
+    if (videos.length > 0 && selectedVideoIndex >= videos.length) {
+      setSelectedVideoIndex(videos.length - 1);
+    }
+  }, [videos.length, selectedVideoIndex]);
+
+  // 保存 LobbyDefine.lua 路徑
+  const saveLobbyDefinePath = async (path) => {
+    if (window.electronAPI && window.electronAPI.saveExportSettings) {
+      try {
+        await window.electronAPI.saveExportSettings({ lobbyDefinePath: path });
+        setLobbyDefinePath(path);
+      } catch (error) {
+        console.error('保存設定失敗:', error);
+      }
+    }
+  };
+
+  // 選擇 LobbyDefine.lua 檔案
+  const selectLobbyDefineFile = async () => {
+    if (!window.electronAPI || !window.electronAPI.selectFile) {
+      console.error('Electron API 不可用');
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.selectFile({
+        title: '選擇 LobbyDefine.lua 檔案',
+        filters: [
+          { name: 'Lua Files', extensions: ['lua'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const selectedPath = result.filePaths[0];
+        await saveLobbyDefinePath(selectedPath);
+      }
+    } catch (error) {
+      console.error('選擇檔案失敗:', error);
+    }
+  };
+
+  // 收集當前設定參數
+  const collectCurrentSettings = () => {
+    // 確保選中的影片索引在有效範圍內
+    const validIndex = Math.min(selectedVideoIndex, videos.length - 1);
+    const selectedVideo = videos[validIndex];
+
+    if (!selectedVideo) {
+      console.warn('沒有選中的影片');
+      return null;
+    }
+
+    // 轉換播放模式
+    const loopMode = selectedVideo.mode === 'ping-pong' ? 'pingpong' : 'normal';
+
+    const settings = {
+      // 必要參數
+      required: {
+        platform: 'I_RICH', // 預設值，在對話框中可修改
+        game_id: '', // 用戶填寫
+        ANIMATION: '', // MP4檔案名稱，用戶填寫
+        LOOP: loopMode, // 從影片設定取得
+        GAME_NAME: '', // LOGO圖片名稱，用戶填寫
+        IS_CLIPPING: true // 預設true
+      },
+      // 選填參數
+      optional: {
+        PLAY_INTERVAL: selectedVideo.pause || 0 // 停留秒數，從影片設定取得
+      }
+    };
+
+    return settings;
+  };
+
+  // 處理匯出流程
+  const handleExport = async () => {
+    if (!window.electronAPI || !window.electronAPI.openExportDialog) {
+      console.error('Electron API 不可用');
+      setExportStatus({ success: false, message: 'Electron API 不可用' });
+      return;
+    }
+
+    if (!lobbyDefinePath) {
+      console.warn('尚未設定 LobbyDefine.lua 路徑');
+      setExportStatus({ success: false, message: '請先設定 LobbyDefine.lua 檔案路徑' });
+      return;
+    }
+
+    setExportStatus({ success: null, message: '準備匯出...' });
+
+    try {
+      // 收集當前設定
+      const currentSettings = collectCurrentSettings();
+      
+      if (!currentSettings) {
+        setExportStatus({ success: false, message: '沒有可匯出的影片設定' });
+        return;
+      }
+      
+      // 打開匯出預覽對話框
+      const result = await window.electronAPI.openExportDialog({
+        required: currentSettings.required,
+        optional: currentSettings.optional
+      });
+
+      if (result.success && !result.canceled) {
+        // 用戶確認匯出，執行匯出流程
+        setExportStatus({ success: null, message: '正在匯出...' });
+        
+        const exportResult = await window.electronAPI.executeExport({
+          targetPath: lobbyDefinePath,
+          exportData: result.data
+        });
+
+        if (exportResult.success) {
+          setExportStatus({ success: true, message: '匯出成功！' });
+        } else {
+          setExportStatus({ success: false, message: `匯出失敗: ${exportResult.error}` });
+        }
+      } else if (result.canceled) {
+        setExportStatus(null); // 取消匯出
+      } else {
+        setExportStatus({ success: false, message: `預覽對話框錯誤: ${result.error}` });
+      }
+    } catch (error) {
+      console.error('匯出過程發生錯誤:', error);
+      setExportStatus({ success: false, message: `匯出失敗: ${error.message}` });
+    }
+  };
+
   return (
     <div className="video-controller">
       <h3>廳館 Banner 影片預覽工具</h3>
@@ -401,6 +559,82 @@ function VideoController({ videos, setVideos, background, setBackground }) {
                 <div className="test-details">錯誤：{ffmpegTestResult.error}</div>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* 匯出功能 */}
+      <div className="control-section">
+        <label>📤 匯出設定：</label>
+        
+        {/* LobbyDefine.lua 路徑設定 */}
+        <div className="export-path-section">
+          <div className="path-display">
+            <span className="path-label">LobbyDefine.lua 路徑：</span>
+            <div className="path-value">
+              {lobbyDefinePath ? (
+                <span title={lobbyDefinePath}>
+                  {lobbyDefinePath.length > 40 ? 
+                    `...${lobbyDefinePath.slice(-40)}` : 
+                    lobbyDefinePath
+                  }
+                </span>
+              ) : (
+                <span className="no-path">尚未選擇檔案</span>
+              )}
+            </div>
+          </div>
+          <button 
+            onClick={selectLobbyDefineFile}
+            className="select-path-btn"
+            title="選擇 LobbyDefine.lua 檔案"
+          >
+            選擇檔案
+          </button>
+        </div>
+
+        {/* 影片選擇 */}
+        {videos.length > 1 && (
+          <div className="video-selection-section">
+            <label className="video-select-label">選擇要匯出的影片：</label>
+            <select 
+              value={selectedVideoIndex}
+              onChange={(e) => setSelectedVideoIndex(parseInt(e.target.value))}
+              className="video-select"
+            >
+              {videos.map((video, index) => (
+                <option key={video.id} value={index}>
+                  影片 {index + 1}: {video.fileName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* 匯出按鈕 */}
+        <div className="export-actions">
+          <button 
+            onClick={handleExport}
+            className="export-btn"
+            disabled={!lobbyDefinePath || videos.length === 0}
+            title={!lobbyDefinePath ? '請先選擇 LobbyDefine.lua 檔案' : 
+                   videos.length === 0 ? '請先上傳影片' : 
+                   videos.length === 1 ? '匯出當前影片設定到 LobbyDefine.lua' :
+                   `匯出影片 ${selectedVideoIndex + 1} (${videos[selectedVideoIndex]?.fileName}) 的設定到 LobbyDefine.lua`}
+          >
+            匯出設定
+          </button>
+        </div>
+
+        {/* 匯出狀態顯示 */}
+        {exportStatus && (
+          <div className={`export-status ${
+            exportStatus.success === true ? 'success' : 
+            exportStatus.success === false ? 'error' : 'processing'
+          }`}>
+            {exportStatus.success === true && <span>✅ {exportStatus.message}</span>}
+            {exportStatus.success === false && <span>❌ {exportStatus.message}</span>}
+            {exportStatus.success === null && <span>⏳ {exportStatus.message}</span>}
           </div>
         )}
       </div>
