@@ -38,11 +38,15 @@
       "build/**/*",
       "main.js",
       "preload.js",
+      "export-dialog.html",
+      "export-preload.js",
       "node_modules/@ffmpeg-installer/**/*",
       "node_modules/fluent-ffmpeg/**/*"
     ],
     "asarUnpack": [
-      "node_modules/@ffmpeg-installer/**/*"
+      "node_modules/@ffmpeg-installer/**/*",
+      "export-dialog.html",
+      "export-preload.js"
     ],
     "extraMetadata": {
       "main": "main.js"
@@ -50,7 +54,8 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico",
-      "publisherName": "Banner Preview Tool"
+      "publisherName": "Banner Preview Tool",
+      "sign": false
     },
     "mac": {
       "target": "dmg",

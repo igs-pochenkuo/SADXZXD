@@ -310,7 +310,9 @@ ipcMain.handle('open-export-dialog', async (event, data) => {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: path.join(__dirname, 'export-preload.js')
+        preload: app.isPackaged 
+          ? path.join(process.resourcesPath, 'app.asar.unpacked', 'export-preload.js')
+          : path.join(__dirname, 'export-preload.js')
       },
       title: '匯出設定預覽',
       resizable: false,
@@ -318,7 +320,11 @@ ipcMain.handle('open-export-dialog', async (event, data) => {
     });
 
     // 載入匯出對話框 HTML
-    exportWindow.loadFile(path.join(__dirname, 'export-dialog.html'));
+    const htmlPath = app.isPackaged 
+      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'export-dialog.html')
+      : path.join(__dirname, 'export-dialog.html');
+    console.log('匯出對話框 HTML 路徑:', htmlPath);
+    exportWindow.loadFile(htmlPath);
 
     exportWindow.once('ready-to-show', () => {
       exportWindow.show();
