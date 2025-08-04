@@ -31,6 +31,17 @@ const ffmpegExists = fs.existsSync(ffmpegPath);
 console.log('ffmpeg 檔案是否存在:', ffmpegExists);
 if (!ffmpegExists) {
   console.error('⚠️ ffmpeg 可執行檔不存在:', ffmpegPath);
+} else {
+  // 測試 ffmpeg 是否可以執行
+  const { exec } = require('child_process');
+  exec(`"${ffmpegPath}" -version`, (error, stdout, stderr) => {
+    if (error) {
+      console.error('❌ ffmpeg 執行測試失敗:', error.message);
+    } else {
+      console.log('✅ ffmpeg 執行測試成功');
+      console.log('ffmpeg 版本資訊:', stdout.split('\n')[0]);
+    }
+  });
 }
 
 // 建立靜態檔案伺服器
@@ -209,4 +220,40 @@ ipcMain.handle('cleanup-temp-files', async (event, filePaths) => {
     console.error('清理臨時檔案錯誤:', error);
     return { success: false, error: error.message };
   }
+});
+
+// 新增：測試 ffmpeg 功能
+ipcMain.handle('test-ffmpeg', async (event) => {
+  console.log('收到 test-ffmpeg IPC 請求');
+  return new Promise((resolve) => {
+    const { exec } = require('child_process');
+    
+    // 測試 ffmpeg 是否存在
+    if (!fs.existsSync(ffmpegPath)) {
+      resolve({
+        success: false,
+        error: `ffmpeg 可執行檔不存在: ${ffmpegPath}`,
+        path: ffmpegPath
+      });
+      return;
+    }
+    
+    // 測試 ffmpeg 是否可以執行
+    exec(`"${ffmpegPath}" -version`, (error, stdout, stderr) => {
+      if (error) {
+        resolve({
+          success: false,
+          error: `ffmpeg 執行失敗: ${error.message}`,
+          path: ffmpegPath
+        });
+      } else {
+        const versionLine = stdout.split('\n')[0];
+        resolve({
+          success: true,
+          version: versionLine,
+          path: ffmpegPath
+        });
+      }
+    });
+  });
 }); 

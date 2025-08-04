@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 清理臨時檔案
   cleanupTempFiles: (filePaths) => ipcRenderer.invoke('cleanup-temp-files', filePaths),
   
+  // 測試 ffmpeg 功能
+  testFFmpeg: () => ipcRenderer.invoke('test-ffmpeg'),
+  
   // 監聽轉換事件
   onConversionStart: (callback) => {
     ipcRenderer.on('conversion-start', (event, data) => callback(data));

@@ -8,6 +8,7 @@ function VideoController({ videos, setVideos, background, setBackground }) {
   // 新增：轉換進度狀態
   const [conversionProgress, setConversionProgress] = useState({});
   const [tempFiles, setTempFiles] = useState([]); // 追蹤臨時檔案
+  const [ffmpegTestResult, setFFmpegTestResult] = useState(null); // ffmpeg 測試結果
 
   // 監聽轉換事件
   useEffect(() => {
@@ -99,6 +100,36 @@ function VideoController({ videos, setVideos, background, setBackground }) {
       }
     };
   }, [tempFiles]);
+
+  // 測試 ffmpeg 功能
+  const testFFmpeg = async () => {
+    setFFmpegTestResult(null); // 清除之前的結果
+    
+    if (!window.electronAPI || !window.electronAPI.testFFmpeg) {
+      setFFmpegTestResult({
+        success: false,
+        error: 'Electron API 不可用，請確認是否在 Electron 環境中運行'
+      });
+      return;
+    }
+    
+    try {
+      const result = await window.electronAPI.testFFmpeg();
+      setFFmpegTestResult(result);
+      
+      if (result.success) {
+        console.log('ffmpeg 測試成功:', result);
+      } else {
+        console.error('ffmpeg 測試失敗:', result.error);
+      }
+    } catch (error) {
+      console.error('測試 ffmpeg 時發生錯誤:', error);
+      setFFmpegTestResult({
+        success: false,
+        error: `測試失敗: ${error.message}`
+      });
+    }
+  };
 
   // 處理影片上傳
   const handleVideoUpload = async (e) => {
@@ -345,6 +376,33 @@ function VideoController({ videos, setVideos, background, setBackground }) {
             使用預設
           </button>
         </div>
+      </div>
+
+      {/* ffmpeg 測試功能 */}
+      <div className="control-section">
+        <label>🔧 系統測試：</label>
+        <button 
+          onClick={testFFmpeg}
+          className="test-ffmpeg-btn"
+          title="測試 ffmpeg 功能是否正常"
+        >
+          測試反播放功能
+        </button>
+        {ffmpegTestResult && (
+          <div className={`test-result ${ffmpegTestResult.success ? 'success' : 'error'}`}>
+            {ffmpegTestResult.success ? (
+              <div>
+                <span>✅ ffmpeg 測試成功</span>
+                <div className="test-details">版本：{ffmpegTestResult.version}</div>
+              </div>
+            ) : (
+              <div>
+                <span>❌ ffmpeg 測試失敗</span>
+                <div className="test-details">錯誤：{ffmpegTestResult.error}</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 影片參數調整 */}
